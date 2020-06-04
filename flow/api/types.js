@@ -232,6 +232,7 @@ type JsRequestType = 'createMailEditor'
 	| 'appUpdateDownloaded'
 	| 'openCustomer' // only for admin clients
 	| 'updateTargetUrl'
+	| 'showSpellcheckDropdown'
 
 type Callback<T> = (err: ?Error, data?: T) => void
 type Command = (msg: Request) => Promise<any>

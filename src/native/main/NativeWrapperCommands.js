@@ -167,7 +167,7 @@ function openCustomer(msg: Request): Promise<void> {
  * this updates the link-reveal on hover when the main thread detects that
  * the hovered url changed. Will _not_ update if hovering a in link app (starts with 2nd argument)
  */
-function updateTargetUrl(msg: Request) : Promise<void> {
+function updateTargetUrl(msg: Request): Promise<void> {
 	const url = msg.args[0]
 	const appPath = msg.args[1]
 	let linkToolTip = document.getElementById("link-tt")
@@ -184,6 +184,37 @@ function updateTargetUrl(msg: Request) : Promise<void> {
 	}
 
 	return Promise.resolve()
+}
+
+function showSpellcheckDropdown(msg: Request): Promise<string> {
+	const [current, options] = msg.args
+	return Promise.join(
+		import('../../gui/base/Dialog.js'),
+		import('../../misc/LanguageViewModel.js'),
+		import('mithril/stream/stream.js'),
+		({Dialog}, {languages, lang}, stream) => {
+			const items = options.map(option => {
+				const language = languages.find(l => l.code === option.replace('-', '_').toLowerCase())
+					|| languages.find(l => l.code === option.slice(0, 2).toLowerCase())
+				const variant = option.length > 3
+					? ` (${option.slice(3)})`
+					: ""
+				const name = language
+					? lang.get(language.textId) + variant
+					: option
+				// some languages that can be spellchecked don't have a
+				// textId in the translations.
+				return {name, value: option}
+			})
+
+			return Dialog.showDropDownSelectionDialog(
+				"spelling_label",
+				"language_label",
+				null,
+				items,
+				stream.default(current)
+			)
+		})
 }
 
 export const appCommands = {
@@ -211,4 +242,5 @@ export const desktopCommands = {
 	appUpdateDownloaded,
 	openCustomer,
 	updateTargetUrl,
+	showSpellcheckDropdown
 }

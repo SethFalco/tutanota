@@ -29,6 +29,10 @@ import type {User} from "../../entities/sys/User"
 import type {GroupMembership} from "../../entities/sys/GroupMembership"
 import {TypeRef} from "../../common/utils/TypeRef";
 
+export function encryptAllowedExternalAddress(key: Aes256Key, address: string, dbIv: Uint8Array): Uint8Array {
+	return aes256Encrypt(key, stringToUtf8Uint8Array(address), dbIv, true, false).slice(dbIv.length)
+}
+
 export function encryptIndexKeyBase64(key: Aes256Key, indexKey: string, dbIv: Uint8Array): Base64 {
 	return uint8ArrayToBase64(encryptIndexKeyUint8Array(key, indexKey, dbIv))
 }

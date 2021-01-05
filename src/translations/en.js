@@ -1305,5 +1305,6 @@ export default {
 		"yourMessage_label": "Your message",
 		"you_label": "You",
 		"paymentProcessingTime_msg": "It may take up to one week until payments via bank transfer will be shown in your account.",
+		"largeSignature_msg": "The signature you defined is over {1}kB in size. It will be appended to every email by default. Do you want to use it anyway?",
 	}
 }

@@ -57,13 +57,11 @@ export class GroupViewer {
 		})
 		this._group.getAsync().then(() => m.redraw())
 
-		this._members = new LazyLoaded(() => {
-			return this._group.getAsync().then(group => {
-				// load only up to 200 members to avoid too long loading, like for account groups
-				return loadRange(GroupMemberTypeRef, group.members, GENERATED_MIN_ID, 200, false).map(member => {
-					return load(GroupInfoTypeRef, member.userGroupInfo)
-				})
-			})
+		this._members = new LazyLoaded(async () => {
+			const group = await this._group.getAsync()
+			// load only up to 200 members to avoid too long loading, like for account groups
+			const groupMembers = await loadRange(GroupMemberTypeRef, group.members, GENERATED_MIN_ID, 200, false)
+			return Promise.mapSeries(groupMembers, (member) => load(GroupInfoTypeRef, member.userGroupInfo))
 		})
 
 		this._name = new TextField("name_label").setValue(this.groupInfo.name).setDisabled()
@@ -87,35 +85,39 @@ export class GroupViewer {
 		let created = new TextField("created_label").setValue(formatDateWithMonth(this.groupInfo.created)).setDisabled()
 		this._usedStorage = new TextField("storageCapacityUsed_label").setValue(lang.get("loading_msg")).setDisabled()
 
-		localAdminGroupInfoModel.init().filter(groupInfo => !groupInfo.deleted).then(localAdminGroupInfos => {
-			let adminGroupIdToName: {name: string, value: ?Id}[] = [
-				{
-					name: lang.get("globalAdmin_label"),
-					value: null
-				}
-			].concat(localAdminGroupInfos.map(gi => {
-				return {
-					name: getGroupInfoDisplayName(gi),
-					value: gi.group
-				}
-			}))
-			this._administratedBy = new DropDownSelector("administratedBy_label", null, adminGroupIdToName, stream(this.groupInfo.localAdmin)).setSelectionChangedHandler(localAdminId => {
-				if (this.groupInfo.groupType === GroupType.LocalAdmin) {
-					Dialog.error("updateAdminshipLocalAdminGroupError_msg")
-				} else {
-					showProgressDialog("pleaseWait_msg", Promise.resolve().then(() => {
-						let newAdminGroupId = localAdminId ?
-							localAdminId :
-							neverNull(logins.getUserController()
-							                .user
-							                .memberships
-							                .find(gm => gm.groupType === GroupType.Admin)).group
-						return worker.updateAdminship(this.groupInfo.group, newAdminGroupId)
-					}))
-				}
+		localAdminGroupInfoModel
+			.init()
+			.then((allGroupInfos) => {
+				const localAdminGroupInfos = allGroupInfos.filter(groupInfo => !groupInfo.deleted)
+
+				const adminGroupIdToName: {name: string, value: ?Id}[] = [
+					{
+						name: lang.get("globalAdmin_label"),
+						value: null
+					}
+				].concat(localAdminGroupInfos.map(gi => {
+					return {
+						name: getGroupInfoDisplayName(gi),
+						value: gi.group
+					}
+				}))
+				this._administratedBy = new DropDownSelector("administratedBy_label", null, adminGroupIdToName, stream(this.groupInfo.localAdmin)).setSelectionChangedHandler(localAdminId => {
+					if (this.groupInfo.groupType === GroupType.LocalAdmin) {
+						Dialog.error("updateAdminshipLocalAdminGroupError_msg")
+					} else {
+						showProgressDialog("pleaseWait_msg", Promise.resolve().then(() => {
+							let newAdminGroupId = localAdminId ?
+								localAdminId :
+								neverNull(logins.getUserController()
+								                .user
+								                .memberships
+								                .find(gm => gm.groupType === GroupType.Admin)).group
+							return worker.updateAdminship(this.groupInfo.group, newAdminGroupId)
+						}))
+					}
+				})
+				m.redraw()
 			})
-			m.redraw()
-		})
 
 
 		this._deactivated = new DropDownSelector("state_label", null, [
@@ -159,14 +161,11 @@ export class GroupViewer {
 		this._updateMembers()
 
 		if (this.groupInfo.groupType === GroupType.LocalAdmin) {
-			this._administratedGroups = new LazyLoaded(() => {
-				return this._group.getAsync().then(group => {
-					// load only up to 200 members to avoid too long loading, like for account groups
-					return loadRange(AdministratedGroupTypeRef, neverNull(group.administratedGroups).items, GENERATED_MAX_ID, 200, true)
-						.map(administratedGroup => {
-							return load(GroupInfoTypeRef, administratedGroup.groupInfo)
-						})
-				})
+			this._administratedGroups = new LazyLoaded(async () => {
+				const group = await this._group.getAsync()
+				// load only up to 200 members to avoid too long loading, like for account groups
+				const groups = await loadRange(AdministratedGroupTypeRef, neverNull(group.administratedGroups).items, GENERATED_MAX_ID, 200, true)
+				return Promise.mapSeries(groups, administratedGroup => load(GroupInfoTypeRef, administratedGroup.groupInfo))
 			})
 
 			this._administratedGroupsTable = new Table([
@@ -246,9 +245,10 @@ export class GroupViewer {
 		})
 	}
 
-	_updateMembers(): Promise<void> {
+	async _updateMembers(): Promise<void> {
 		this._members.reset()
-		return this._members.getAsync().map(userGroupInfo => {
+		const userGroupInfos = await this._members.getAsync()
+		const tableLines = userGroupInfos.map(userGroupInfo => {
 			let removeButton = new Button("remove_action", () => {
 				showProgressDialog("pleaseWait_msg", load(GroupTypeRef, userGroupInfo.group)
 					.then(userGroup => worker.removeUserFromGroup(neverNull(userGroup.user), this.groupInfo.group)))
@@ -257,14 +257,14 @@ export class GroupViewer {
 					})
 			}, () => Icons.Cancel)
 			return new TableLine([userGroupInfo.name, neverNull(userGroupInfo.mailAddress)], removeButton)
-		}).then(tableLines => {
-			this._membersTable.updateEntries(tableLines)
 		})
+		this._membersTable.updateEntries(tableLines)
 	}
 
-	_updateAdministratedGroups(): Promise<void> {
+	async _updateAdministratedGroups(): Promise<void> {
 		this._administratedGroups.reset()
-		return this._administratedGroups.getAsync().map(groupInfo => {
+		const groupInfos: Array<GroupInfo> = await this._administratedGroups.getAsync()
+		const tableLines = groupInfos.map(groupInfo => {
 			let removeButton = null
 			if (logins.getUserController().isGlobalAdmin()) {
 				removeButton = new Button("remove_action", () => {
@@ -278,11 +278,10 @@ export class GroupViewer {
 				}, () => Icons.Cancel)
 			}
 			return new TableLine([
-				getGroupTypeName(groupInfo.groupType), groupInfo.name, neverNull(groupInfo.mailAddress)
+				getGroupTypeName(groupInfo.groupType || ""), groupInfo.name, neverNull(groupInfo.mailAddress)
 			], removeButton)
-		}).then(tableLines => {
-			this._administratedGroupsTable.updateEntries(tableLines)
 		})
+		this._administratedGroupsTable.updateEntries(tableLines)
 	}
 
 	_isMailGroup(): boolean {

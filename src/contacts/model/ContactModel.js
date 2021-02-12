@@ -71,18 +71,15 @@ export class ContactModelImpl implements ContactModel {
 	/**
 	 * @pre locator.search.indexState().indexingSupported
 	 */
-	searchForContacts(query: string, field: string, minSuggestionCount: number): Promise<Contact[]> {
-		return this._worker.search(query, createRestriction("contact", null, null, field, null), minSuggestionCount)
-		             .then(result => {
-			             // load one by one because they may be in different lists when we have different lists
-			             return Promise.map(result.results, idTuple => {
-				             return this._entityClient.load(ContactTypeRef, idTuple).catch(NotFoundError, e => {
-					             return null
-				             }).catch(NotAuthorizedError, e => {
-					             return null
-				             })
-			             }).filter(contact => contact != null)
-		             })
+	async searchForContacts(query: string, field: string, minSuggestionCount: number): Promise<Contact[]> {
+		const result = await this._worker.search(query, createRestriction("contact", null, null, field, null), minSuggestionCount)
+		// load one by one because they may be in different lists when we have different lists
+		const contacts = await Promise.map(result.results, idTuple => {
+			return this._entityClient.load(ContactTypeRef, idTuple)
+			           .catch(NotFoundError, () => null)
+			           .catch(NotAuthorizedError, () => null)
+		}, {concurrency: 2})
+		return contacts.filter(Boolean)
 	}
 
 

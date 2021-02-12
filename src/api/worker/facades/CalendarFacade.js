@@ -248,7 +248,7 @@ export class CalendarFacade {
 			return this._entity.loadAll(UserAlarmInfoTypeRef, alarmInfoList.alarms)
 			           .then((userAlarmInfos) =>
 				           Promise
-					           .map(userAlarmInfos, (userAlarmInfo) =>
+					           .mapSeries(userAlarmInfos, (userAlarmInfo) =>
 						           this._entity.load(CalendarEventTypeRef, [
 							           userAlarmInfo.alarmInfo.calendarRef.listId, userAlarmInfo.alarmInfo.calendarRef.elementId
 						           ])
@@ -265,7 +265,7 @@ export class CalendarFacade {
 							               console.warn("NotAuthorized when downloading alarm event", e)
 							               return null
 						               }))
-					           .filter(Boolean) // filter out orphan alarms
+					           .then((alarms) => alarms.filter(Boolean)) // filter out orphan alarms
 			           )
 		} else {
 			console.warn("No alarmInfo list on user")

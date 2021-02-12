@@ -70,8 +70,8 @@ export class ContactFormViewer implements UpdatableSettingsViewer {
 		})
 		let participantMailGroupsField = null
 		loadGroupInfos(contactForm.participantGroupInfos)
-			.map(groupInfo => getGroupInfoDisplayName(groupInfo))
-			.then(mailGroupNames => {
+			.then(groupInfos => {
+				const mailGroupNames = groupInfos.map(groupInfo => getGroupInfoDisplayName(groupInfo))
 				if (mailGroupNames.length > 0) {
 					participantMailGroupsField = new TextField("responsiblePersons_label")
 						.setValue(mailGroupNames.join("; "))

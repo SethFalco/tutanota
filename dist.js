@@ -19,14 +19,13 @@ import {sign} from "./buildSrc/installerSigner.js"
 import path, {dirname} from "path"
 import os from "os"
 import {rollup} from "rollup"
-import {resolveLibs} from "./buildSrc/RollupConfig.js"
+import {bundleDependencyCheckPlugin, resolveLibs} from "./buildSrc/RollupConfig.js"
 import {terser} from "rollup-plugin-terser"
 import pluginBabel from "@rollup/plugin-babel"
 import commonjs from "@rollup/plugin-commonjs"
 import {fileURLToPath} from "url"
 import nodeResolve from "@rollup/plugin-node-resolve"
 import visualizer from "rollup-plugin-visualizer"
-import {bundleDependencyCheckPlugin} from "./buildSrc/RollupConfig.js"
 
 const {babel} = pluginBabel
 let start = Date.now()
@@ -390,13 +389,20 @@ async function buildDesktopClient(version) {
 				await buildDesktop(desktopTestOpts)
 			}
 		} else if (options.stage === "local") {
+			// this is the only way to contact the local server from localhost, a VM and
+			// from other machines in the LAN with the same url.
+			const addr = Object
+				.values(os.networkInterfaces())
+				.map(net => net.find(a => a.family === "IPv4"))
+				.filter(Boolean)
+				.filter(net => !net.internal && net.address.startsWith('192.168.'))[0].address
 			const desktopLocalOpts = Object.assign({}, desktopBaseOpts, {
 				version,
-				updateUrl: "http://localhost:9000/client/build/desktop-snapshot",
+				updateUrl: `http://${addr}:9000/client/build/desktop-snapshot`,
 				nameSuffix: "-snapshot",
 				notarize: false
 			})
-			await createHtml(env.create("http://localhost:9000", version, "Desktop", true))
+			await createHtml(env.create(`http://${addr}:9000`, version, "Desktop", true))
 			await buildDesktop(desktopLocalOpts)
 		} else if (options.stage === "test") {
 			const desktopTestOpts = Object.assign({}, desktopBaseOpts, {
@@ -513,6 +519,13 @@ function signDesktopClients() {
 			sign('./build/desktop-test/tutanota-desktop-test-mac.dmg', 'mac-sig-dmg.bin', /*ymlFileName*/ null)
 			sign('./build/desktop-test/tutanota-desktop-test-win.exe', 'win-sig.bin', 'latest.yml')
 			sign('./build/desktop-test/tutanota-desktop-test-linux.AppImage', 'linux-sig.bin', 'latest-linux.yml')
+		}
+	} else if (process.env.DEBUG_SIGN && options.stage === "local") {
+		if (options.desktop.win) sign('./build/desktop-snapshot/tutanota-desktop-snapshot-win.exe', 'win-sig.bin', 'latest.yml')
+		if (options.desktop.linux) sign('./build/desktop-snapshot/tutanota-desktop-snapshot-linux.AppImage', 'linux-sig.bin', 'latest-linux.yml')
+		if (options.desktop.mac) {
+			sign('./build/desktop-snapshot/tutanota-desktop-snapshot-mac.zip', 'mac-sig-zip.bin', 'latest-mac.yml')
+			sign('./build/desktop-snapshot/tutanota-desktop-snapshot-mac.dmg', 'mac-sig-dmg.bin', /*ymlFileName*/ null)
 		}
 	}
 }
@@ -637,7 +650,6 @@ function analyzer() {
 						buffer += `"${dep}" -> "${key}"\n`
 					}
 				}
-
 
 				console.log(key, "\t", value.code.length / 1024 + "K")
 				for (const module of Object.keys(value.modules)) {

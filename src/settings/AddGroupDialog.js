@@ -169,7 +169,6 @@ export function show(): mixed {
 				onEmailChanged: (mailAddress, validationResult) => viewModel.onEmailChanged(mailAddress, validationResult),
 				onBusyStateChanged: (isBusy) => viewModel.isVerifactionBusy = isBusy,
 			}),
-			// validator: () => viewModel.isVerifactionBusy ? null : viewModel.validateAddGroupInput(),
 			okAction: addGroupOkAction,
 		})
 	})

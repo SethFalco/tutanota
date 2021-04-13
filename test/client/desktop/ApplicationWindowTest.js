@@ -234,6 +234,7 @@ o.spec("ApplicationWindow Test", function () {
 			show: false,
 			autoHideMenuBar: true,
 			webPreferences: {
+				partition: "nopersist",
 				nodeIntegration: false,
 				nodeIntegrationInWorker: false,
 				nodeIntegrationInSubFrames: false,

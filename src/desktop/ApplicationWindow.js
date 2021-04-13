@@ -143,6 +143,7 @@ export class ApplicationWindow {
 			show: false,
 			autoHideMenuBar: true,
 			webPreferences: {
+				partition: "nopersist",
 				nodeIntegration: false,
 				nodeIntegrationInWorker: false,
 				nodeIntegrationInSubFrames: false,

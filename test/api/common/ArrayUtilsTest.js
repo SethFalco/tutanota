@@ -4,7 +4,7 @@ import {
 	arrayEquals,
 	concat,
 	deduplicate,
-	findLastIndex,
+	findLastIndex, flat, flatMap,
 	insertIntoSortedArray,
 	splitInChunks
 } from "../../../src/api/common/utils/ArrayUtils"
@@ -132,5 +132,45 @@ o.spec("array utils", function () {
 			null, 1, null, 2, 3, 0, 0, "word", "word", "anotherword", undefined, undefined, {a: 10}, {a: 10}, object, object, {a: 20}
 		]))
 			.deepEquals([null, 1, 2, 3, 0, "word", "anotherword", undefined, {a: 10}, {a: 10}, object, {a: 20}])
+	})
+
+	o("flat", function () {
+		o(flat([]))
+			.deepEquals([])
+
+		o(flat([[], [], []]))
+			.deepEquals([])
+
+		o(flat([[0, 1, 2, 3]]))
+			.deepEquals([0, 1, 2, 3])
+
+		o(flat([[], [0], [1, 2, 3], [4, 5, 6], [], [7, 8, 9]]))
+			.deepEquals([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
+
+		o(flat([[[0]], [[1, 2, 3], [4, 5, 6]], [], [[]]]))
+			.deepEquals([[0], [1, 2, 3], [4, 5, 6], []])
+	})
+
+	o("flatMap", function () {
+		const mapper = v => v * v
+
+		o(flatMap([], mapper))
+			.deepEquals([])
+
+		o(flatMap([[], [], []], mapper))
+			.deepEquals([])
+
+		o(flatMap([[0, 1, 2, 3]], mapper))
+			.deepEquals([0, 1, 4, 9])
+
+		o(flatMap([[], [0], [1, 2, 3], [4, 5, 6], [], [7, 8, 9]], mapper))
+			.deepEquals([0, 1, 4, 9, 16, 25, 36, 49, 64, 81])
+
+		o(flatMap([[1, 2, 3], [4, 5, 6]], element => [element]))
+			.deepEquals([[1], [2], [3], [4], [5], [6]])
+
+
+		o(flatMap([[[0]], [[1, 2, 3], [4, 5, 6]], [], [[]]], arr => arr.map(mapper)))
+			.deepEquals([[0], [1, 4, 9], [16, 25, 36], []])
 	})
 })

@@ -272,19 +272,18 @@ export class CalendarFacade {
 							                      // We do not allow to delete userAlarmInfos currently
 							                      // but when we update the server we should do that
 							                      // erase(userAlarmInfo).catch(noOp)
-							                      return null
+							                      return []
 						                      }
 						                      if (error instanceof NotAuthorizedError) {
 							                      console.warn("NotAuthorized when downloading alarm events", error)
-							                      return null
+							                      return []
 						                      }
 						                      throw error
 					                      })
-				           }).filter(Boolean) // filter out errors
-				             .then(events => flatMap(events, event => {
-					             const userAlarmInfo = assertNotNull(eventIdToAlarmInfo.get(getLetId(event).join()))
-					             return {event, userAlarmInfo}
-				             }))
+				           }).then(events => flatMap(events, event => {
+					           const userAlarmInfo = assertNotNull(eventIdToAlarmInfo.get(getLetId(event).join()))
+					           return {event, userAlarmInfo}
+				           }))
 			           })
 		} else {
 			console.warn("No alarmInfo list on user")

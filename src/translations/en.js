@@ -1305,5 +1305,6 @@ export default {
 		"yourMessage_label": "Your message",
 		"you_label": "You",
 		"paymentProcessingTime_msg": "It may take up to one week until payments via bank transfer will be shown in your account.",
+		"configureCustomNotificationEmail_label": "Configure your own notification email"
 	}
 }

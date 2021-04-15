@@ -56,6 +56,7 @@ import type {CustomerProperties} from "../api/entities/sys/CustomerProperties"
 import {CustomerPropertiesTypeRef} from "../api/entities/sys/CustomerProperties"
 import {attachDropdown} from "../gui/base/DropdownN"
 import * as EditNotificationEmailDialog from "./EditNotificationEmailDialog"
+import {showBuyOrSetNotificationEmailDialog} from "./EditNotificationEmailDialog"
 import type {TextFieldAttrs} from "../gui/base/TextFieldN"
 import {TextFieldN} from "../gui/base/TextFieldN"
 import {isWhitelabelActive} from "../subscription/SubscriptionUtils"
@@ -548,9 +549,7 @@ export class WhitelabelSettingsViewer implements UpdatableSettingsViewer {
 				showActionButtonColumn: true,
 				addButtonAttrs: {
 					label: "add_action",
-					click: () => {
-						this._showBuyOrSetNotificationEmailDialog()
-					},
+					click: () => showBuyOrSetNotificationEmailDialog(this._lastBooking, this._customerProperties),
 					type: ButtonType.Action,
 					icon: () => Icons.Add
 				},
@@ -584,22 +583,6 @@ export class WhitelabelSettingsViewer implements UpdatableSettingsViewer {
 			m(".small", lang.get("customNotificationEmailsHelp_msg")),
 		]
 	}
-
-	_showBuyOrSetNotificationEmailDialog(existingTemplate: ?NotificationMailTemplate) {
-		if (logins.getUserController().isFreeAccount()) {
-			showNotAvailableForFreeDialog(false)
-		} else {
-
-			const whitelabelFailedPromise: Promise<boolean> = isWhitelabelActive(this._lastBooking) ?
-				Promise.resolve(false) : showWhitelabelBuyDialog(true)
-			whitelabelFailedPromise.then(failed => {
-				if (!failed) {
-					EditNotificationEmailDialog.show(existingTemplate, this._customerProperties)
-				}
-			})
-		}
-	}
-
 
 	_removeNotificationMailTemplate(template: NotificationMailTemplate) {
 		showProgressDialog("pleaseWait_msg", this._customerProperties.getAsync().then((customerProps) => {

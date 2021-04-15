@@ -1292,3 +1292,5 @@ export type TranslationKeyType = "about_label"
 	| "you_label"
 	| "emptyString_msg"
 	| "paymentProcessingTime_msg"
+	//TODO
+	| "configureCustomNotificationEmail_label"

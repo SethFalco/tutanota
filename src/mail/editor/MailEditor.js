@@ -140,20 +140,17 @@ export class MailEditor implements MComponent<MailEditorAttrs> {
 				})
 		this.toolbar = new RichTextToolbar(this.editor, {imageButtonClickHandler: insertImageHandler})
 
-		this.recipientFields = {
-			to: new MailEditorRecipientField(model, "to", locator.contactModel),
+		let toFieldInectionsRight
+		let toFieldDisabled = false
+		if (model.logins().isInternalUserLoggedIn()) {
+			toFieldInectionsRight = () => m(".mr-s", m(ExpanderButtonN, {label: "show_action", expanded: a.areDetailsExpanded,}))
+		} else {
+			toFieldDisabled = true
+		}
+			this.recipientFields = {
+			to: new MailEditorRecipientField(model, "to", locator.contactModel, toFieldInectionsRight, toFieldDisabled),
 			cc: new MailEditorRecipientField(model, "cc", locator.contactModel),
 			bcc: new MailEditorRecipientField(model, "bcc", locator.contactModel),
-		}
-
-		if (model.logins().isInternalUserLoggedIn()) {
-			this.recipientFields.to.component.textField._injectionsRight = () =>
-				m(".mr-s", m(ExpanderButtonN, {
-					label: "show_action",
-					expanded: a.areDetailsExpanded,
-				}))
-		} else {
-			this.recipientFields.to.component.textField.setDisabled()
 		}
 
 		if (a.inlineImages) {
@@ -199,8 +196,8 @@ export class MailEditor implements MComponent<MailEditorAttrs> {
 			let invalidText = ""
 			for (const field in this.recipientFields) {
 				this.recipientFields[field].component.createBubbles()
-				if (this.recipientFields[field].component.textField.value().trim() !== "") {
-					invalidText += "\n" + this.recipientFields[field].component.textField.value().trim()
+				if (this.recipientFields[field].component.currentValue().trim() !== "") {
+					invalidText += "\n" + this.recipientFields[field].component.currentValue().trim()
 				}
 			}
 			if (invalidText !== "") {

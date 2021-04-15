@@ -533,8 +533,7 @@ function makeBubbleTextField(viewModel: CalendarEventViewModel, contactModel: Co
 		},
 	}, contactModel)
 
-	const invitePeopleValueTextField = new BubbleTextField("addGuest_label", bubbleHandler, {marginLeft: 0})
-	invitePeopleValueTextField.textField._injectionsRight = () => renderConfidentialButton(viewModel)
+	const invitePeopleValueTextField = new BubbleTextField("addGuest_label", bubbleHandler, {marginLeft: 0}, () => renderConfidentialButton(viewModel))
 	return invitePeopleValueTextField
 }
 

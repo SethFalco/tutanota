@@ -5,7 +5,7 @@ import {assertWorkerOrNode} from "../../common/Env"
 import type {UserAlarmInfo} from "../../entities/sys/UserAlarmInfo"
 import {createUserAlarmInfo, UserAlarmInfoTypeRef} from "../../entities/sys/UserAlarmInfo"
 import type {LoginFacade} from "./LoginFacade"
-import {downcast, neverNull, noOp} from "../../common/utils/Utils"
+import {assertNotNull, downcast, neverNull, noOp} from "../../common/utils/Utils"
 import {HttpMethod} from "../../common/EntityFunctions"
 import type {PushIdentifier} from "../../entities/sys/PushIdentifier"
 import {_TypeModel as PushIdentifierTypeModel, PushIdentifierTypeRef} from "../../entities/sys/PushIdentifier"
@@ -41,8 +41,10 @@ import {hash} from "../crypto/Sha256"
 import {stringToUtf8Uint8Array} from "../../common/utils/Encoding"
 import type {CalendarRepeatRule} from "../../entities/tutanota/CalendarRepeatRule"
 import {EntityClient} from "../../common/EntityClient"
-import {elementIdPart, getListId, isSameId, listIdPart, uint8arrayToCustomId} from "../../common/utils/EntityUtils";
+import {elementIdPart, getLetId, getListId, isSameId, listIdPart, uint8arrayToCustomId} from "../../common/utils/EntityUtils";
 import {Request} from "../../common/WorkerProtocol"
+import {promiseMap} from "../../common/utils/PromiseUtils"
+import {flatMap} from "../../common/utils/ArrayUtils"
 
 assertWorkerOrNode()
 
@@ -246,27 +248,44 @@ export class CalendarFacade {
 		const alarmInfoList = user.alarmInfoList
 		if (alarmInfoList) {
 			return this._entity.loadAll(UserAlarmInfoTypeRef, alarmInfoList.alarms)
-			           .then((userAlarmInfos) =>
-				           Promise
-					           .map(userAlarmInfos, (userAlarmInfo) =>
-						           this._entity.load(CalendarEventTypeRef, [
-							           userAlarmInfo.alarmInfo.calendarRef.listId, userAlarmInfo.alarmInfo.calendarRef.elementId
-						           ])
-						               .then((event) => {
-							               return {event, userAlarmInfo}
-						               })
-						               .catch(NotFoundError, () => {
-							               // We do not allow to delete userAlarmInfos currently but when we update the server we should do that
-							               //erase(userAlarmInfo).catch(noOp)
-							               return null
-						               })
-						               .catch(NotAuthorizedError, (e) => {
-							               // Should not happen normally but could happen when user is removed from the calendar
-							               console.warn("NotAuthorized when downloading alarm event", e)
-							               return null
-						               }))
-					           .filter(Boolean) // filter out orphan alarms
-			           )
+			           .then(userAlarmInfos => {
+
+				           const eventIdToAlarmInfo: Map<string, UserAlarmInfo> = new Map()
+				           const listIdToElementIds: Map<Id, Array<Id>> = new Map()
+				           for (let alarmInfo of userAlarmInfos) {
+					           const eventId = getEventIdFromUserAlarmInfo(alarmInfo)
+					           eventIdToAlarmInfo.set(eventId.join(), alarmInfo)
+
+					           const [listId, elementId] = eventId
+					           const elementIds = listIdToElementIds.get(listId)
+					           if (!elementIds) {
+						           listIdToElementIds.set(listId, [elementId])
+					           } else {
+						           elementIds.push(elementId)
+					           }
+				           }
+
+				           return promiseMap(listIdToElementIds.entries(), ([listId, elementIds]) => {
+					           return this._entity.loadMultipleEntities(CalendarEventTypeRef, listId, elementIds)
+					                      .catch(error => {
+						                      if (error instanceof NotFoundError) {
+							                      // We do not allow to delete userAlarmInfos currently
+							                      // but when we update the server we should do that
+							                      // erase(userAlarmInfo).catch(noOp)
+							                      return null
+						                      }
+						                      if (error instanceof NotAuthorizedError) {
+							                      console.warn("NotAuthorized when downloading alarm events", error)
+							                      return null
+						                      }
+						                      throw error
+					                      })
+				           }).filter(Boolean) // filter out errors
+				             .then(events => flatMap(events, event => {
+					             const userAlarmInfo = assertNotNull(eventIdToAlarmInfo.get(getLetId(event).join()))
+					             return {event, userAlarmInfo}
+				             }))
+			           })
 		} else {
 			console.warn("No alarmInfo list on user")
 			return Promise.resolve([])
@@ -343,4 +362,8 @@ function createRepeatRuleForCalendarRepeatRule(calendarRepeatRule: CalendarRepea
 		interval: calendarRepeatRule.interval,
 		timeZone: calendarRepeatRule.timeZone
 	})
+}
+
+function getEventIdFromUserAlarmInfo(userAlarmInfo: UserAlarmInfo): IdTuple {
+	return [userAlarmInfo.alarmInfo.calendarRef.listId, userAlarmInfo.alarmInfo.calendarRef.elementId]
 }

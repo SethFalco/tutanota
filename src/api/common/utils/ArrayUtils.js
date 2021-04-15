@@ -207,9 +207,26 @@ export function splitInChunks<T>(chunkSize: number, array: Array<T>): Array<Arra
 	return chunks
 }
 
+/**
+ * Flatten a nested array into one level
+ * @param arrays
+ * @returns {Array<T>}
+ */
 export function flat<T>(arrays: Array<Array<T>>): Array<T> {
-	return arrays.reduce((acc, val) => {
-		acc.push(...val)
+	return flatMap(arrays, identity)
+}
+
+/**
+ * Flatten a nested array and map each element along the way
+ * @param arrays
+ * @param mapper
+ * @returns {T|*[]}
+ */
+export function flatMap<T, U>(arrays: Array<Array<T>>, mapper: T => U): Array<U> {
+	return arrays.reduce((acc, vals) => {
+		for (let val of vals) {
+			acc.push(mapper(val))
+		}
 		return acc
 	}, [])
 }

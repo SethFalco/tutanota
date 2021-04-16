@@ -268,12 +268,6 @@ export class CalendarFacade {
 				           return promiseMap(listIdToElementIds.entries(), ([listId, elementIds]) => {
 					           return this._entity.loadMultipleEntities(CalendarEventTypeRef, listId, elementIds)
 					                      .catch(error => {
-						                      if (error instanceof NotFoundError) {
-							                      // We do not allow to delete userAlarmInfos currently
-							                      // but when we update the server we should do that
-							                      // erase(userAlarmInfo).catch(noOp)
-							                      return []
-						                      }
 						                      if (error instanceof NotAuthorizedError) {
 							                      console.warn("NotAuthorized when downloading alarm events", error)
 							                      return []

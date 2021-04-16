@@ -1,7 +1,7 @@
 // @flow
 import {lang} from "../../misc/LanguageViewModel"
 import type {AlarmIntervalEnum, OperationTypeEnum, RepeatPeriodEnum} from "../../api/common/TutanotaConstants"
-import {AlarmInterval, AlarmIntervalByCode, EndType, OperationType, RepeatPeriod} from "../../api/common/TutanotaConstants"
+import {AlarmInterval, AlarmIntervalByCode, EndType, getAsEnumValue, OperationType, RepeatPeriod} from "../../api/common/TutanotaConstants"
 import type {AlarmNotification} from "../../api/entities/sys/AlarmNotification"
 import {_TypeModel as AlarmNotificationTypeModel} from "../../api/entities/sys/AlarmNotification"
 import {last} from "../../api/common/utils/ArrayUtils"
@@ -128,8 +128,7 @@ export class DesktopAlarmScheduler {
 		let hasScheduledAlarms = false
 		let mightNeedIntermediateSchedule = false
 
-		// fallback 5 minute alarm if invalid trigger
-		const trigger = TRIGGER_TIMES_IN_MS[AlarmIntervalByCode[decAn.alarmInfo.trigger]] || TRIGGER_TIMES_IN_MS[AlarmInterval.FIVE_MINUTES]
+		const trigger = getTriggerInMs(decAn)
 
 		decAn[Symbol.iterator] = occurrenceIterator
 		for (const occurrence of downcast(decAn)) {
@@ -184,6 +183,16 @@ export class DesktopAlarmScheduler {
 		for (const alarm of alarms) {
 			await this.handleAlarmNotification(alarm)
 		}
+	}
+}
+
+function getTriggerInMs(alarm: AlarmNotification): number {
+	const trigger = getAsEnumValue(AlarmInterval, alarm.alarmInfo.trigger)
+	if (trigger) {
+		return TRIGGER_TIMES_IN_MS[trigger]
+	} else {
+		log.debug(`invalid alarm value: ${alarm.alarmInfo.trigger}, falling back to 5M`)
+		return TRIGGER_TIMES_IN_MS[AlarmInterval.FIVE_MINUTES]
 	}
 }
 

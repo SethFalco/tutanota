@@ -4,6 +4,7 @@ import n from '../../nodemocker'
 import {EndType, RepeatPeriod} from "../../../../src/api/common/TutanotaConstants"
 import {downcast} from "../../../../src/api/common/utils/Utils"
 import {DesktopAlarmScheduler, MAX_SAFE_DELAY, occurrenceIterator} from "../../../../src/desktop/sse/DesktopAlarmScheduler"
+import {DateTime} from "luxon"
 
 const START_DATE = new Date(2019, 9, 10, 14).getTime()
 const oldTimezone = process.env.TZ
@@ -271,6 +272,65 @@ o.spec("DesktopAlarmSchedulerTest", function () {
 		o(timeProviderMock.clearTimeout.args[0]).equals(1)
 	})
 
+	o.spec("handleAlarmNotification", function () {
+		let scheduler
+		let timeProviderMock
+
+		o.beforeEach(function () {
+			const {wmMock, notifierMock, alarmStorageMock, cryptoMock} = standardMocks()
+
+			timeProviderMock = new timeProvider()
+			scheduler = new DesktopAlarmScheduler(wmMock, notifierMock, alarmStorageMock, cryptoMock, timeProviderMock)
+		})
+
+		o.only("trigger 5M", async function () {
+
+			const an1 = createAlarmNotification({
+				startTime: DateTime.fromISO("2019-10-10T20:10+02").toJSDate(),
+				endTime: DateTime.fromISO("2019-10-10T20:12+02").toJSDate(),
+				trigger: "5M",
+				endType: null,
+			})
+
+			await scheduler.handleAlarmNotification(an1)
+			const timeoutTimes = timeProviderMock.timeouts.map(it => it.when)
+			o(timeoutTimes).deepEquals([
+				DateTime.fromISO("2019-10-10T20:05+02").toMillis(),
+			])
+		})
+
+		o.only("trigger 10M", async function () {
+
+			const an1 = createAlarmNotification({
+				startTime: DateTime.fromISO("2019-10-10T20:10+02").toJSDate(),
+				endTime: DateTime.fromISO("2019-10-10T20:12+02").toJSDate(),
+				trigger: "10M",
+				endType: null,
+			})
+
+			await scheduler.handleAlarmNotification(an1)
+			const timeoutTimes = timeProviderMock.timeouts.map(it => it.when)
+			o(timeoutTimes).deepEquals([
+				DateTime.fromISO("2019-10-10T20:00+02").toMillis(),
+			])
+		})
+
+		o.only("trigger 30M", async function () {
+			const an1 = createAlarmNotification({
+				startTime: DateTime.fromISO("2019-10-10T20:10+02").toJSDate(),
+				endTime: DateTime.fromISO("2019-10-10T20:12+02").toJSDate(),
+				trigger: "30M",
+				endType: null,
+			})
+
+			await scheduler.handleAlarmNotification(an1)
+			const timeoutTimes = timeProviderMock.timeouts.map(it => it.when)
+			o(timeoutTimes).deepEquals([
+				DateTime.fromISO("2019-10-10T19:40+02").toMillis(),
+			])
+		})
+	})
+
 	o("alarm occurrences", function () {
 		standardMocks()
 
@@ -472,10 +532,9 @@ function testOccurrenceArray(occurrenceIterator, anOpts, expectedOccurrences) {
 
 let alarmIdCounter = 0
 
-function createAlarmNotification(opts: any) {
-	const {startTime, endTime, trigger, endType, endValue, frequency, interval} = opts
+function createAlarmNotification({startTime, endTime, trigger, endType, endValue, frequency, interval}: any) {
 	alarmIdCounter++
-	const an = {
+	return {
 		_id: `scheduledAlarmId${alarmIdCounter}`,
 		eventStart: startTime,
 		eventEnd: endTime,
@@ -501,16 +560,17 @@ function createAlarmNotification(opts: any) {
 				]
 			}
 		],
-		repeatRule: endType ? {
-			_id: `repeatRuleId${alarmIdCounter}`,
-			endType,
-			endValue,
-			frequency,
-			interval
-		} : null,
+		repeatRule: endType
+			? {
+				_id: `repeatRuleId${alarmIdCounter}`,
+				endType,
+				endValue,
+				frequency,
+				interval
+			}
+			: null,
 		user: "userId1"
 	}
-	return an
 }
 
 function createDeleteAlarmNotification(alarmIdentifier: string) {

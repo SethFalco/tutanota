@@ -847,6 +847,8 @@ export class MailViewer {
 					'undefined' !== typeof Array.from(sanitizeResult.html.querySelectorAll('*[style]'), e => e.style)
 					                            .find(s => s.color !== "" && s.color !== "inherit" && typeof s.color !== 'undefined')
 					|| 0 < Array.from(sanitizeResult.html.querySelectorAll('font[color]'), e => e.style).length
+					|| 0 < Array.from(sanitizeResult.html.querySelectorAll('*'), e => e.style)
+					            .filter(e => e.cssText.includes("background-color")).length
 				)
 
 				this._htmlBody = urlify(stringifyFragment(sanitizeResult.html))

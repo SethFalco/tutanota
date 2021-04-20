@@ -574,6 +574,14 @@ styles.registerStyle('main', () => {
 			'margin-top': requiresStatusBarHack() ? "20px" : 'env(safe-area-inset-top)' // insets for iPhone X)
 		},
 
+		'.suggestions': {
+			'z-index': '999',
+			'position': "absolute",
+			'width': '100%',
+			'box-shadow': boxShadow,
+			'background-color': theme.elevated_bg
+		},
+
 		'bottom-nav': {
 			'box-shadow': `0 -2px 4px 0 ${theme.header_box_shadow_bg}`,
 			height: positionValue(size.bottom_nav_bar),

@@ -57,6 +57,11 @@ export interface Suggestion {
 	selected: boolean;
 }
 
+/**
+ * Some parent element of the BubbleTextField needs to have position relative for the suggestions to be correctly positioned.
+ * We do not add position relative here because it allows us to show the suggestions dropdown even if a parent has overflow hidden
+ * by making the element with position relative a parent of that element!
+ */
 export class BubbleTextField<T> {
 	loading: ?Promise<void>;
 	textField: TextField;
@@ -71,8 +76,7 @@ export class BubbleTextField<T> {
 
 	_domSuggestions: HTMLElement;
 
-	constructor(labelIdOrLabelTextFunction: TranslationKey | lazy<string>, bubbleHandler: BubbleHandler<T, any>,
-	            suggestionStyle: {[string]: any} = {}) {
+	constructor(labelIdOrLabelTextFunction: TranslationKey | lazy<string>, bubbleHandler: BubbleHandler<T, any>) {
 		this.loading = null
 		this.suggestions = []
 		this.selectedSuggestion = null
@@ -106,7 +110,6 @@ export class BubbleTextField<T> {
 		this.textField._keyHandler = key => this.handleKey(key)
 
 		this.bubbleHandler = bubbleHandler
-
 		this.view = () => {
 			return m('.bubble-text-field', [
 				m(this.textField, {
@@ -123,10 +126,9 @@ export class BubbleTextField<T> {
 						})
 					}
 				}),
-				m(".suggestions.text-ellipsis.ml-negative-l", {
+				m(`.suggestions.text-ellipsis${this.suggestions.length ? ".dropdown-shadow" : ""}`, {
 					oncreate: vnode => this._domSuggestions = vnode.dom,
 					onmousedown: e => this.textField.skipNextBlur = true,
-					style: suggestionStyle,
 				}, this.suggestions.map(s => m(s, {
 					mouseDownHandler: e => {
 						this.selectedSuggestion = s

@@ -1,5 +1,6 @@
 // @flow
 import m from "mithril"
+import type {TranslationKey} from "../misc/LanguageViewModel"
 import {lang} from "../misc/LanguageViewModel"
 import {BookingItemFeatureType, Keys} from "../api/common/TutanotaConstants"
 import type {BuyOptionBoxAttr} from "./BuyOptionBox"
@@ -17,12 +18,16 @@ import {ButtonN, ButtonType} from "../gui/base/ButtonN"
 import type {DialogHeaderBarAttrs} from "../gui/base/DialogHeaderBar"
 import {showBuyDialog} from "./BuyDialog"
 
-export function show(): Promise<void> {
+
+/**
+ * @pre isGlobalAdmin() is true and isFreeAccount() is false
+ */
+export function showStorageCapacityOptionsDialog(storageWarningTextId: ?TranslationKey): Promise<void> {
 	return load(CustomerTypeRef, neverNull(logins.getUserController().user.customer))
 		.then(customer => load(CustomerInfoTypeRef, customer.customerInfo))
 		.then(customerInfo => {
 			let freeStorageCapacity = Math.max(Number(customerInfo.includedStorageCapacity), Number(customerInfo.promotionStorageCapacity))
-			return Promise.fromCallback((callback) => {
+			return Promise.fromCallback((resolve) => {
 				const changeStorageCapacityAction = (amount: number) => {
 					dialog.close()
 					showBuyDialog(BookingItemFeatureType.Storage, amount, freeStorageCapacity, false).then(confirm => {
@@ -30,13 +35,12 @@ export function show(): Promise<void> {
 							return buyStorage(amount)
 						}
 					}).then(() => {
-						callback(null)
+						resolve(null)
 					})
 				}
-
 				const cancelAction = () => {
 					dialog.close()
-					callback(null)
+					resolve(null)
 				}
 
 				const storageBuyOptionsAttrs = [
@@ -47,12 +51,12 @@ export function show(): Promise<void> {
 				].filter(scb => scb.amount === 0 || scb.amount > freeStorageCapacity).map(scb => scb.buyOptionBoxAttr) // filter needless buy options
 
 				const headerBarAttrs: DialogHeaderBarAttrs = {
-					left: [{label: "cancel_action", click: cancelAction, type: ButtonType.Secondary}],
-					middle: () => lang.get("storageCapacity_label")
+					middle: () => lang.get("storageCapacity_label"),
+					right: [{label: "close_alt", click: cancelAction, type: ButtonType.Primary}]
 				}
 				const dialog = Dialog.largeDialog(headerBarAttrs, {
 					view: () => [
-						m(".pt.center", lang.get("buyStorageCapacityInfo_msg")),
+						m(".pt-l.center.pb", storageWarningTextId ? m(".b", lang.get(storageWarningTextId)) : lang.get("buyStorageCapacityInfo_msg")),
 						m(".flex-center.flex-wrap", storageBuyOptionsAttrs.map(attr => m(BuyOptionBox, attr)))
 					]
 				}).addShortcut({

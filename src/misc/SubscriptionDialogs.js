@@ -62,20 +62,21 @@ export function checkPremiumSubscription(included: boolean): Promise<boolean> {
 	})
 }
 
-export function showMoreStorageNeededOrderDialog(loginController: LoginController,
-                                                 messageIdOrMessageFunction: TranslationKey | lazy<string>
-): Promise<void> {
-	return Dialog.confirm(messageIdOrMessageFunction, "upgrade_action").then((confirm) => {
-		if (confirm) {
-			if (loginController.getUserController().isPremiumAccount()) {
-				import("../subscription/StorageCapacityOptionsDialog").then((StorageCapacityOptionsDialog) => {
-					StorageCapacityOptionsDialog.show()
-				})
-			} else {
-				showNotAvailableForFreeDialog(false)
+/**
+ * @pre isGlobalAdmins is true
+ */
+export function showMoreStorageNeededOrderDialog(loginController: LoginController, messageIdOrMessageFunction: TranslationKey): Promise<void> {
+	if (logins.getUserController().isFreeAccount()) {
+		const confirmMsg = () => lang.get(messageIdOrMessageFunction) + "\n\n" + lang.get("onlyAvailableForPremiumNotIncluded_msg")
+		return Dialog.confirm(confirmMsg, "upgrade_action").then((confirm) => {
+			if (confirm) {
+				import("../subscription/UpgradeSubscriptionWizard").then(wizard => wizard.showUpgradeWizard())
 			}
-		}
-	})
+		})
+	} else {
+		return import("../subscription/StorageCapacityOptionsDialog")
+			.then(({showStorageCapacityOptionsDialog}) => showStorageCapacityOptionsDialog(messageIdOrMessageFunction))
+	}
 }
 
 /**

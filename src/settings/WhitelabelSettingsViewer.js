@@ -59,7 +59,7 @@ import * as EditNotificationEmailDialog from "./EditNotificationEmailDialog"
 import type {TextFieldAttrs} from "../gui/base/TextFieldN"
 import {TextFieldN} from "../gui/base/TextFieldN"
 import {isWhitelabelActive} from "../subscription/SubscriptionUtils"
-import {getStartOfTheWeekOffsetForUser} from "../calendar/CalendarUtils"
+import {getStartOfTheWeekOffsetForUser} from "../calendar/date/CalendarUtils"
 import {SysService} from "../api/entities/sys/Services"
 import {BrandingDomainGetReturnTypeRef} from "../api/entities/sys/BrandingDomainGetReturn"
 import {LockedError, PreconditionFailedError} from "../api/common/error/RestError"
@@ -129,7 +129,7 @@ export class WhitelabelSettingsViewer implements UpdatableSettingsViewer {
 			})
 		})
 
-		const startOfTheWeekOffset = getStartOfTheWeekOffsetForUser()
+		const startOfTheWeekOffset = getStartOfTheWeekOffsetForUser(logins.getUserController().userSettingsGroupRoot)
 		let contactFormReportFrom = new DatePicker(startOfTheWeekOffset, "dateFrom_label")
 		let contactFormReportTo = new DatePicker(startOfTheWeekOffset, "dateTo_label")
 		contactFormReportFrom.setDate(new Date())

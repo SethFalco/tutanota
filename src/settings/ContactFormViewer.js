@@ -26,11 +26,12 @@ import {createFile} from "../api/entities/tutanota/File"
 import {convertToDataFile} from "../api/common/DataFile"
 import {fileController} from "../file/FileController"
 import {DAY_IN_MILLIS, formatSortableDate} from "../api/common/utils/DateUtils"
-import {getStartOfTheWeekOffsetForUser} from "../calendar/CalendarUtils"
+import {getStartOfTheWeekOffsetForUser} from "../calendar/date/CalendarUtils"
 import type {ContactForm} from "../api/entities/tutanota/ContactForm"
 import type {EntityUpdateData} from "../api/main/EventController"
 import {getGroupInfoDisplayName} from "../api/common/utils/GroupUtils";
 import {showBuyDialog} from "../subscription/BuyDialog"
+import {logins} from "../api/main/LoginController"
 
 assertMainOrNode()
 
@@ -92,7 +93,7 @@ export class ContactFormViewer implements UpdatableSettingsViewer {
 				f.name, statisticsFieldTypeToString(f)
 			])))
 		}
-		const startOfTheWeekOffset = getStartOfTheWeekOffsetForUser()
+		const startOfTheWeekOffset = getStartOfTheWeekOffsetForUser(logins.getUserController().userSettingsGroupRoot)
 		let contactFormReportFrom = new DatePicker(startOfTheWeekOffset, "dateFrom_label")
 		let contactFormReportTo = new DatePicker(startOfTheWeekOffset, "dateTo_label")
 		contactFormReportFrom.setDate(new Date())

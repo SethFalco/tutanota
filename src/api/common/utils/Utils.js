@@ -51,6 +51,8 @@ import type {Customer} from "../../entities/sys/Customer"
 import {DeviceStorageUnavailableError} from "../error/DeviceStorageUnavailableError"
 import {FeatureType} from "../TutanotaConstants"
 
+export type Thunk = () => mixed
+
 export type DeferredObject<T> = {
 	resolve: (T) => void,
 	reject: (Error) => void,

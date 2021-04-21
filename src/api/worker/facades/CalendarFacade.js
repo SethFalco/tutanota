@@ -5,7 +5,7 @@ import {assertWorkerOrNode} from "../../common/Env"
 import type {UserAlarmInfo} from "../../entities/sys/UserAlarmInfo"
 import {createUserAlarmInfo, UserAlarmInfoTypeRef} from "../../entities/sys/UserAlarmInfo"
 import type {LoginFacade} from "./LoginFacade"
-import {assertNotNull, downcast, neverNull, noOp} from "../../common/utils/Utils"
+import {downcast, neverNull, noOp} from "../../common/utils/Utils"
 import {HttpMethod} from "../../common/EntityFunctions"
 import type {PushIdentifier} from "../../entities/sys/PushIdentifier"
 import {_TypeModel as PushIdentifierTypeModel, PushIdentifierTypeRef} from "../../entities/sys/PushIdentifier"
@@ -41,10 +41,10 @@ import {hash} from "../crypto/Sha256"
 import {stringToUtf8Uint8Array} from "../../common/utils/Encoding"
 import type {CalendarRepeatRule} from "../../entities/tutanota/CalendarRepeatRule"
 import {EntityClient} from "../../common/EntityClient"
-import {elementIdPart, getLetId, getListId, isSameId, listIdPart, uint8arrayToCustomId} from "../../common/utils/EntityUtils";
+import {elementIdPart, getListId, isSameId, listIdPart, uint8arrayToCustomId} from "../../common/utils/EntityUtils";
 import {Request} from "../../common/WorkerProtocol"
 import {promiseMap} from "../../common/utils/PromiseUtils"
-import {flatMap} from "../../common/utils/ArrayUtils"
+import {filterNull, flat, groupByAndMap} from "../../common/utils/ArrayUtils"
 
 assertWorkerOrNode()
 
@@ -243,41 +243,40 @@ export class CalendarFacade {
 		})
 	}
 
+	/**
+	 * Load all events that have an alarm assigned.
+	 */
 	loadAlarmEvents(): Promise<Array<EventWithAlarmInfo>> {
 		const user = this._loginFacade.getLoggedInUser()
 		const alarmInfoList = user.alarmInfoList
 		if (alarmInfoList) {
 			return this._entity.loadAll(UserAlarmInfoTypeRef, alarmInfoList.alarms)
 			           .then(userAlarmInfos => {
-
-				           const eventIdToAlarmInfo: Map<string, UserAlarmInfo> = new Map()
-				           const listIdToElementIds: Map<Id, Array<Id>> = new Map()
-				           for (let alarmInfo of userAlarmInfos) {
-					           const eventId = getEventIdFromUserAlarmInfo(alarmInfo)
-					           eventIdToAlarmInfo.set(eventId.join(), alarmInfo)
-
-					           const [listId, elementId] = eventId
-					           const elementIds = listIdToElementIds.get(listId)
-					           if (!elementIds) {
-						           listIdToElementIds.set(listId, [elementId])
-					           } else {
-						           elementIds.push(elementId)
-					           }
-				           }
+				           // Group referenced event ids by list id so we can load events of one list in one request.
+				           const listIdToElementIds = groupByAndMap(userAlarmInfos,
+					           (userAlarmInfo) => userAlarmInfo.alarmInfo.calendarRef.listId,
+					           (userAlarmInfo) => userAlarmInfo.alarmInfo.calendarRef.elementId)
 
 				           return promiseMap(listIdToElementIds.entries(), ([listId, elementIds]) => {
 					           return this._entity.loadMultipleEntities(CalendarEventTypeRef, listId, elementIds)
 					                      .catch(error => {
+						                      // handle NotAuthorized here because user could have been removed from group.
 						                      if (error instanceof NotAuthorizedError) {
 							                      console.warn("NotAuthorized when downloading alarm events", error)
 							                      return []
 						                      }
 						                      throw error
 					                      })
-				           }).then(events => flatMap(events, event => {
-					           const userAlarmInfo = assertNotNull(eventIdToAlarmInfo.get(getLetId(event).join()))
-					           return {event, userAlarmInfo}
-				           }))
+				           }).then(flat)
+				             .then(calendarEvents => {
+					             return userAlarmInfos.map(userAlarmInfo => {
+						             const eventForAlarmInfo = calendarEvents.find(event => isSameId(event._id, getEventIdFromUserAlarmInfo(userAlarmInfo)))
+						             return eventForAlarmInfo ? {
+							             event: eventForAlarmInfo,
+							             userAlarmInfo: userAlarmInfo
+						             } : null
+					             })
+				             }).then(filterNull)
 			           })
 		} else {
 			console.warn("No alarmInfo list on user")

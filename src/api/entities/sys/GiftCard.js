@@ -87,7 +87,7 @@ export const _TypeModel: TypeModel = {
 	},
 	"associations": {},
 	"app": "sys",
-	"version": "69"
+	"version": "68"
 }
 
 export function createGiftCard(values?: $Shape<$Exact<GiftCard>>): GiftCard {

@@ -38,7 +38,7 @@ export const _TypeModel: TypeModel = {
 	},
 	"associations": {},
 	"app": "sys",
-	"version": "69"
+	"version": "68"
 }
 
 export function createCalendarEventRef(values?: $Shape<$Exact<CalendarEventRef>>): CalendarEventRef {

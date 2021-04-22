@@ -80,7 +80,7 @@ export const _TypeModel: TypeModel = {
 	},
 	"associations": {},
 	"app": "sys",
-	"version": "69"
+	"version": "68"
 }
 
 export function createRejectedSender(values?: $Shape<$Exact<RejectedSender>>): RejectedSender {

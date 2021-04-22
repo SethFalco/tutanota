@@ -47,7 +47,7 @@ export const _TypeModel: TypeModel = {
 		}
 	},
 	"app": "sys",
-	"version": "69"
+	"version": "68"
 }
 
 export function createCreateGroupListData(values?: $Shape<$Exact<CreateGroupListData>>): CreateGroupListData {

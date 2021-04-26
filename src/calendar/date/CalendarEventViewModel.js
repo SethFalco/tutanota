@@ -5,6 +5,7 @@ import {
 	AccountType,
 	CalendarAttendeeStatus,
 	EndType,
+	FeatureType,
 	getAttendeeStatus,
 	RepeatPeriod,
 	ShareCapability,
@@ -36,15 +37,7 @@ import {
 	timeString,
 	timeStringInZone
 } from "./CalendarUtils"
-import {
-	assertNotNull,
-	clone,
-	downcast,
-	isBusinessFeatureCustomizationEnabled,
-	isPremiumLegacyCustomizationEnabled,
-	neverNull,
-	noOp
-} from "../../api/common/utils/Utils"
+import {assertNotNull, clone, downcast, isCustomizationEnabledForCustomer, neverNull, noOp} from "../../api/common/utils/Utils"
 import {generateEventElementId, isAllDayEvent} from "../../api/common/utils/CommonCalendarUtils"
 import {CalendarModel} from "../model/CalendarModel"
 import {DateTime} from "luxon"
@@ -327,8 +320,8 @@ export class CalendarEventViewModel {
 	updateCustomerFeatures(): Promise<void> {
 		return this._userController.loadCustomer()
 		           .then(customer => {
-			           this.hasBusinessFeature(isBusinessFeatureCustomizationEnabled(customer))
-			           this.hasPremiumLegacy(isPremiumLegacyCustomizationEnabled(customer))
+			           this.hasBusinessFeature(isCustomizationEnabledForCustomer(customer, FeatureType.BusinessFeatureEnabled))
+			           this.hasPremiumLegacy(isCustomizationEnabledForCustomer(customer, FeatureType.PremiumLegacy))
 		           }).return()
 	}
 

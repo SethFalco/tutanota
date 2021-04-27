@@ -42,7 +42,8 @@ declare module 'electron' {
 		openPath(fullPath: string): Promise<string>;
 	};
 
-	declare export class NativeImage {}
+	declare export class NativeImage {
+	}
 
 	declare export type Rectangle = {|
 		x: number,
@@ -54,7 +55,7 @@ declare module 'electron' {
 	declare export type ClipBoard = {
 		writeText(string): void;
 	}
-
+	// https://www.electronjs.org/docs/api/web-contents#event-context-menu
 	declare export type ContextMenuParams = {
 		linkURL: string,
 		editFlags: {
@@ -63,7 +64,10 @@ declare module 'electron' {
 			canCopy: boolean,
 			canUndo: boolean,
 			canRedo: boolean
-		}
+		},
+		hasImageContents: boolean,
+		mediaType: "none" | "image" | "audio" | "video" | "canvas" | "file" | "plugin",
+		srcURL?: string
 	}
 
 	declare export type IncomingMessage = {
@@ -394,6 +398,7 @@ declare module 'electron' {
 		}): MenuItem;
 		click(): void;
 		enabled: boolean;
+		visible: boolean;
 	}
 
 	declare export class BrowserWindow {

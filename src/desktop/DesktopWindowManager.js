@@ -44,7 +44,7 @@ export class WindowManager {
 		this._tray = tray
 		this._notifier = notifier
 		this.dl = dl
-		this._contextMenu = new DesktopContextMenu(electron)
+		this._contextMenu = new DesktopContextMenu(electron, this, dl)
 		this._newWindowFactory = (noAutoLogin) => this._newWindow(electron, localShortcut, noAutoLogin)
 		this._dragIcons = {
 			"eml": this._tray.getIconByName("eml.png"),

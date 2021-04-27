@@ -46,7 +46,7 @@ o.spec("DesktopContextMenu Test", () => {
 				canCopy: false,
 				canUndo: false,
 				canRedo: false
-			}
+			},
 		})
 		downcast(electronMock.MenuItem).mockedInstances.forEach(i => i.click && i.click(undefined, undefined))
 		downcast(electronMock.MenuItem).mockedInstances.forEach(i => i.click && i.click(undefined, "nowebcontents"))

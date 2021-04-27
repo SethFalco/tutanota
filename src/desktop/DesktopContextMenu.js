@@ -6,6 +6,7 @@ import {lang} from "../misc/LanguageViewModel"
 type Electron = $Exports<"electron">
 
 export class DesktopContextMenu {
+
 	_menu: Menu;
 	_pasteItem: MenuItem;
 	_copyItem: MenuItem;
@@ -14,8 +15,11 @@ export class DesktopContextMenu {
 	_undoItem: MenuItem;
 	_redoItem: MenuItem;
 	_link: string;
+	_downloadImage: MenuItem;
 
-	constructor(electron: Electron) {
+	_itemSourceUrl: ?string
+
+	constructor(electron: Electron, wm: WindowManager, dl: DesktopDownloadManager) {
 		this._menu = new electron.Menu()
 		this._link = ""
 		this._pasteItem = new electron.MenuItem({
@@ -47,6 +51,17 @@ export class DesktopContextMenu {
 			accelerator: "CmdOrCtrl+Shift+Z",
 			click: (mi, bw) => bw && bw.webContents && bw.webContents.redo()
 		})
+		this._downloadImage = new electron.MenuItem({
+			label: lang.get("save_action"),
+			click: (mi, bw) => {
+				console.log(this._itemSourceUrl)
+				const window = wm.get(bw.id)
+				window && wm.ipc.sendRequest(window.id, 'resolveObjectUrl', [this._itemSourceUrl])
+				            .then((resolved: ResolvedObjectUrl) => {
+					            dl.saveBlob(resolved.name || "file", resolved.data, window)
+				            })
+			}
+		})
 
 		this._menu.append(this._copyItem)
 		this._menu.append(this._cutItem)
@@ -55,16 +70,20 @@ export class DesktopContextMenu {
 		this._menu.append(new electron.MenuItem({type: 'separator'}))
 		this._menu.append(this._undoItem)
 		this._menu.append(this._redoItem)
+		this._menu.append(this._downloadImage)
 	}
 
 	open(params: ContextMenuParams) {
 		this._link = params.linkURL
 		this._copyLinkItem.enabled = !!params.linkURL
+
 		this._cutItem.enabled = params.editFlags.canCut
 		this._pasteItem.enabled = params.editFlags.canPaste
 		this._copyItem.enabled = params.editFlags.canCopy
 		this._undoItem.enabled = params.editFlags.canUndo
 		this._redoItem.enabled = params.editFlags.canRedo
+		this._downloadImage.visible = params.hasImageContents && params.mediaType === "image"
+		this._itemSourceUrl = params.srcURL || null
 		this._menu.popup()
 	}
 }

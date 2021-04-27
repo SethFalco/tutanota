@@ -8,7 +8,7 @@ import {locator} from "../../api/main/MainLocator";
 import {getArchiveFolder, getFolderIcon, getInboxFolder} from "../model/MailUtils"
 import type {AllIconsEnum} from "../../gui/base/Icon"
 import {Icons} from "../../gui/base/icons/Icons"
-import type {InlineImages} from "./MailViewer";
+import type {InlineImage, InlineImages} from "./MailViewer";
 import type {File as TutanotaFile} from "../../api/entities/tutanota/File";
 import {isApp, isDesktop} from "../../api/common/Env";
 import {downcast} from "../../api/common/utils/Utils"
@@ -102,8 +102,7 @@ export function getMailFolderIcon(mail: Mail): AllIconsEnum {
 	}
 }
 
-export function replaceCidsWithInlineImages(dom: HTMLElement, inlineImages: InlineImages,
-                                            onContext: (TutanotaFile | DataFile, (MouseEvent | TouchEvent), HTMLElement) => mixed): Array<HTMLElement> {
+export function replaceCidsWithInlineImages(dom: HTMLElement, inlineImages: InlineImages): Array<HTMLElement> {
 	// all image tags which have cid attribute. The cid attribute has been set by the sanitizer for adding a default image.
 	const imageElements: Array<HTMLElement> = Array.from(dom.querySelectorAll("img[cid]"))
 	const elementsWithCid = []
@@ -114,6 +113,7 @@ export function replaceCidsWithInlineImages(dom: HTMLElement, inlineImages: Inli
 			if (inlineImage) {
 				elementsWithCid.push(imageElement)
 				imageElement.setAttribute("src", inlineImage.url)
+				imageElement.setAttribute("title", inlineImage.file.name)
 				imageElement.classList.remove("tutanota-placeholder")
 
 				if (isApp()) { // Add long press action for apps
@@ -124,7 +124,7 @@ export function replaceCidsWithInlineImages(dom: HTMLElement, inlineImages: Inli
 						if (!touch) return
 						startCoords = {x: touch.clientX, y: touch.clientY}
 						timeoutId = setTimeout(() => {
-							onContext(inlineImage.file, e, imageElement)
+							handleInlineImageContextLongPress(inlineImage, e)
 						}, 800)
 					})
 					imageElement.addEventListener("touchmove", (e: TouchEvent) => {
@@ -137,13 +137,6 @@ export function replaceCidsWithInlineImages(dom: HTMLElement, inlineImages: Inli
 
 					imageElement.addEventListener("touchend", () => {
 						timeoutId && clearTimeout(timeoutId)
-					})
-				}
-
-				if (isDesktop()) { // add right click action for desktop apps
-					imageElement.addEventListener("contextmenu", (e: MouseEvent) => {
-						onContext(inlineImage.file, e, imageElement)
-						e.preventDefault()
 					})
 				}
 			}

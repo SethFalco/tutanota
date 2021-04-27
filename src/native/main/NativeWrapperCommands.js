@@ -162,12 +162,37 @@ function openCustomer(msg: Request): Promise<void> {
 	return Promise.resolve()
 }
 
+export type ResolvedObjectUrl = {
+	data: Uint8Array,
+	name: ?string,
+	mimeType: string
+}
+
+function resolveObjectUrl(msg: Request): Promise<ResolvedObjectUrl> {
+	// TODO Don't allow non object urls
+	const url = msg.args[0]
+
+	return import("../../file/FileController")
+		.then(({fileController}) => {
+			return fetch(url).then(data => data.blob())
+			                 .then(blob => blob.arrayBuffer().then(buffer => {
+				                 return {
+					                 data: new Uint8Array(buffer),
+					                 mimeType: blob.type,
+					                 // TODO Translate
+					                 name: fileController.objectUrlsToFileNames.get(url)
+						                 || `unknown${mimeTypeToFileExtension(downcast(blob.type)) || ""}`
+				                 }
+			                 }))
+		})
+}
+
 /**
  * /**
  * this updates the link-reveal on hover when the main thread detects that
  * the hovered url changed. Will _not_ update if hovering a in link app (starts with 2nd argument)
  */
-function updateTargetUrl(msg: Request) : Promise<void> {
+function updateTargetUrl(msg: Request): Promise<void> {
 	const url = msg.args[0]
 	const appPath = msg.args[1]
 	let linkToolTip = document.getElementById("link-tt")
@@ -211,4 +236,5 @@ export const desktopCommands = {
 	appUpdateDownloaded,
 	openCustomer,
 	updateTargetUrl,
+	resolveObjectUrl
 }

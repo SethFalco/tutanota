@@ -119,7 +119,8 @@ import {getCoordsOfMouseOrTouchEvent} from "../../gui/base/GuiUtils"
 
 assertMainOrNode()
 
-export type InlineImages = Map<string, {file: TutanotaFile | DataFile, url: string}>
+export type InlineImage = {file: TutanotaFile | DataFile, url: string}
+export type InlineImages = Map<string, InlineImage>
 
 // synthetic events are fired in code to distinguish between double and single click events
 type MaybeSyntheticEvent = TouchEvent & {synthetic?: boolean}

@@ -10,8 +10,13 @@ import type {AllIconsEnum} from "../../gui/base/Icon"
 import {Icons} from "../../gui/base/icons/Icons"
 import type {InlineImage, InlineImages} from "./MailViewer";
 import type {File as TutanotaFile} from "../../api/entities/tutanota/File";
-import {isApp, isDesktop} from "../../api/common/Env";
+import {isApp} from "../../api/common/Env";
 import {downcast} from "../../api/common/utils/Utils"
+import {fileController} from "../../file/FileController"
+import {getCoordsOfMouseOrTouchEvent} from "../../gui/base/GuiUtils"
+import {showDropdownAtPosition} from "../../gui/base/DropdownN"
+import {ButtonType} from "../../gui/base/ButtonN"
+import {FileOpenError} from "../../api/common/error/FileOpenError"
 
 export function showDeleteConfirmationDialog(mails: $ReadOnlyArray<Mail>): Promise<boolean> {
 	let groupedMails = mails.reduce((all, mail) => {
@@ -143,6 +148,35 @@ export function replaceCidsWithInlineImages(dom: HTMLElement, inlineImages: Inli
 		}
 	})
 	return elementsWithCid
+}
+
+function handleInlineImageContextLongPress(inlineImage: InlineImage, event: MouseEvent | TouchEvent) {
+	const file = inlineImage.file
+	if (file._type !== "DataFile") {
+		const coords = getCoordsOfMouseOrTouchEvent(event)
+		showDropdownAtPosition([
+			{
+				label: "download_action",
+				click: () => downloadAndMaybeOpenFile(file, false),
+				type: ButtonType.Dropdown
+			},
+			{
+				label: "open_action",
+				click: () => downloadAndMaybeOpenFile(file, true),
+				type: ButtonType.Dropdown
+			},
+		], coords.x, coords.y)
+	}
+}
+
+export function downloadAndMaybeOpenFile(file: TutanotaFile, open: boolean): void {
+	fileController.downloadAndOpen(file, open)
+	              .catch(FileOpenError, () => Dialog.error("canNotOpenFileOnDevice_msg"))
+	              .catch(e => {
+		              const msg = e || "unknown error"
+		              console.error("could not open file:", msg)
+		              return Dialog.error("errorDuringFileOpen_msg")
+	              })
 }
 
 export function replaceInlineImagesWithCids(dom: HTMLElement): HTMLElement {

@@ -3,6 +3,8 @@ import {Request} from "../../api/common/WorkerProtocol"
 import {getMimeType, getName, getSize} from "../common/FileApp"
 import {CloseEventBusOption, SECOND_MS} from "../../api/common/TutanotaConstants"
 import {nativeApp} from "../common/NativeWrapper"
+import {mimeTypeToFileExtension} from "../../api/common/utils/FileUtils"
+import {downcast} from "../../api/common/utils/Utils"
 
 const createMailEditor = (msg: Request): Promise<void> => {
 	return Promise.all([
@@ -171,17 +173,17 @@ export type ResolvedObjectUrl = {
 function resolveObjectUrl(msg: Request): Promise<ResolvedObjectUrl> {
 	// TODO Don't allow non object urls
 	const url = msg.args[0]
-
 	return import("../../file/FileController")
 		.then(({fileController}) => {
 			return fetch(url).then(data => data.blob())
 			                 .then(blob => blob.arrayBuffer().then(buffer => {
+				                 // TODO Translate
+				                 const fileName = fileController.getFileNameFromObjectUrl(url)
+					                 || `unknown${mimeTypeToFileExtension(downcast(blob.type)) || ""}`
 				                 return {
 					                 data: new Uint8Array(buffer),
 					                 mimeType: blob.type,
-					                 // TODO Translate
-					                 name: fileController.objectUrlsToFileNames.get(url)
-						                 || `unknown${mimeTypeToFileExtension(downcast(blob.type)) || ""}`
+					                 name: fileName
 				                 }
 			                 }))
 		})

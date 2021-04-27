@@ -281,7 +281,7 @@ declare module 'electron' {
 			options: MessageBoxOptions
 		): Promise<{response: number, checkboxChecked: boolean}>,
 		showOpenDialog(browserWindow: ?BrowserWindow, options: OpenDialogOptions): Promise<{canceled: boolean, filePaths: string[]}>,
-		showSaveDialog(browserWindow: ?BrowserWindow, options: SaveDialogOptions): Promise<{canceled: boolean, filePath?: string, bookmark?: string}>,
+		showSaveDialog(browserWindow: ?BrowserWindow, options: SaveDialogOptions): Promise<SaveDialogReturn>,
 		showErrorBox(title: string, content: string): void,
 	}
 
@@ -293,11 +293,16 @@ declare module 'electron' {
 		properties: Array<'openFile' | 'openDirectory' | 'multiSelection' | 'showHiddenFiles'>,
 	}
 
+	// https://www.electronjs.org/docs/api/dialog#dialogshowsavedialogbrowserwindow-options
 	declare export type SaveDialogOptions = {
 		title?: string,
 		defaultPath?: string,
 		// Incomplete
 	}
+
+	declare export type SaveDialogReturn =
+		{canceled: true, bookmark?: string}
+		| {canceled: false, filePath: string, bookmark?: string}
 
 	declare export type MessageBoxOptions = {
 		// type of the message box

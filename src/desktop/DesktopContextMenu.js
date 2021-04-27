@@ -2,6 +2,9 @@
 
 import type {ContextMenuParams, Menu, MenuItem} from "electron"
 import {lang} from "../misc/LanguageViewModel"
+import type {WindowManager} from "./DesktopWindowManager"
+import type {ResolvedObjectUrl} from "../native/main/NativeWrapperCommands"
+import type {DesktopDownloadManager} from "./DesktopDownloadManager"
 
 type Electron = $Exports<"electron">
 

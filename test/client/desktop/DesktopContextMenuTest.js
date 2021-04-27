@@ -3,6 +3,8 @@ import o from "ospec"
 import n from "../nodemocker"
 import {DesktopContextMenu} from "../../../src/desktop/DesktopContextMenu"
 import {downcast} from "../../../src/api/common/utils/Utils"
+import {DesktopDownloadManager} from "../../../src/desktop/DesktopDownloadManager"
+import {WindowManager} from "../../../src/desktop/DesktopWindowManager"
 
 o.spec("DesktopContextMenu Test", () => {
 	const standardMocks = () => {
@@ -28,16 +30,36 @@ o.spec("DesktopContextMenu Test", () => {
 				statics: {}
 			})
 		}
-		const electronMock: $Exports<"electron"> = n.mock('electron', electron).set()
 
+		const wm = {
+			ipc: n.classify({
+				prototype: {
+					sendRequest: () => Promise.resolve()
+				},
+				statics: {}
+			})
+		}
+
+		const dl = n.classify({
+			prototype: {
+				saveBlob: () => {},
+			},
+			statics: {}
+		})
+
+		const electronMock: $Exports<"electron"> = n.mock('electron', electron).set()
+		const wmMock: WindowManager = n.mock("WindowManager", wm).set()
+		const dlMock: DesktopDownloadManager = n.mock("DesktopDownloadManager", dl).set()
 		return {
 			electronMock,
+			wmMock,
+			dlMock
 		}
 	}
 
 	o("can handle undefined browserWindow and webContents in callback", () => {
-		const {electronMock} = standardMocks()
-		const contextMenu = new DesktopContextMenu(electronMock)
+		const {electronMock, wmMock, dlMock} = standardMocks()
+		const contextMenu = new DesktopContextMenu(electronMock, wmMock, dlMock)
 		contextMenu.open({
 			linkURL: "nourl",
 			editFlags: {
@@ -47,6 +69,8 @@ o.spec("DesktopContextMenu Test", () => {
 				canUndo: false,
 				canRedo: false
 			},
+			hasImageContents: false,
+			mediaType: "none"
 		})
 		downcast(electronMock.MenuItem).mockedInstances.forEach(i => i.click && i.click(undefined, undefined))
 		downcast(electronMock.MenuItem).mockedInstances.forEach(i => i.click && i.click(undefined, "nowebcontents"))

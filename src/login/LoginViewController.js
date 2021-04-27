@@ -27,7 +27,7 @@ import {deviceConfig} from "../misc/DeviceConfig"
 import {client} from "../misc/ClientDetector"
 import {secondFactorHandler} from "../misc/SecondFactorHandler"
 import {showProgressDialog} from "../gui/ProgressDialog"
-import {themeId} from "../gui/theme"
+import {themeId, updateCustomTheme} from "../gui/theme"
 import {CancelledError} from "../api/common/error/CancelledError"
 import {notifications} from "../gui/Notifications"
 import {isMailAddress} from "../misc/FormatValidator"
@@ -42,6 +42,7 @@ import {ButtonType} from "../gui/base/ButtonN"
 import {isNotificationCurrentlyActive, loadOutOfOfficeNotification} from "../api/main/OutOfOfficeNotificationUtils"
 import {showMoreStorageNeededOrderDialog} from "../misc/SubscriptionDialogs";
 import type {OutOfOfficeNotification} from "../api/entities/tutanota/OutOfOfficeNotification"
+import {WhitelabelConfigTypeRef} from "../api/entities/sys/WhitelabelConfig"
 
 assertMainOrNode()
 
@@ -224,6 +225,17 @@ export class LoginViewController implements ILoginViewController {
 			})
 			.then(() => logins.loginComplete()).then(() => {
 			if (isApp() || isDesktop()) {
+				logins.getUserController().loadCustomerInfo().then(
+					customerInfo => customerInfo.domainInfos.forEach(info => {
+						if (info.whitelabelConfig != null) {
+							load(WhitelabelConfigTypeRef, info.whitelabelConfig).then(whitelabelConfig => {
+								if (whitelabelConfig.jsonTheme) {
+									updateCustomTheme(JSON.parse(whitelabelConfig.jsonTheme))
+								}
+							})
+						}
+					})
+				)
 				// don't wait for it, just invoke
 				import("../native/common/FileApp")
 					.then(({fileApp}) => fileApp.clearFileData())

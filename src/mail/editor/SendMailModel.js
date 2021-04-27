@@ -4,6 +4,7 @@ import {
 	ApprovalStatus,
 	ConversationType,
 	MailFolderType,
+	MailMethod,
 	MAX_ATTACHMENT_SIZE,
 	OperationType,
 	ReplyType
@@ -751,8 +752,12 @@ export class SendMailModel {
 			// catch all of the badness
 			.catch(RecipientNotResolvedError, () => {throw new UserError("tooManyAttempts_msg")})
 			.catch(RecipientsNotFoundError, (e) => {
-				let invalidRecipients = e.message
-				throw new UserError(() => lang.get("invalidRecipients_msg") + "\n" + invalidRecipients)
+				if (mailMethod === MailMethod.ICAL_CANCEL) {
+					//in case of calendar event cancellation we willremove invalid recipients and then delete the event without sending updates
+					throw e
+				} else {
+					throw new UserError(() => lang.get("invalidRecipients_msg") + "\n" + e.message)
+				}
 			})
 			.catch(TooManyRequestsError, () => {throw new UserError(tooManyRequestsError)})
 			.catch(AccessBlockedError, e => {

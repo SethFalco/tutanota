@@ -33,7 +33,6 @@ import type {DialogHeaderBarAttrs} from "../../gui/base/DialogHeaderBar"
 import {ButtonType} from "../../gui/base/ButtonN"
 import type {File as TutanotaFile} from "../../api/entities/tutanota/File"
 import type {ContactForm} from "../../api/entities/tutanota/ContactForm"
-import {locator} from "../../api/main/MainLocator"
 import {createDropDownButton} from "../../gui/base/Dropdown";
 
 assertMainOrNode()
@@ -307,7 +306,7 @@ export class ContactFormRequestDialog {
 						                                     let recipientInfo =
 							                                     createRecipientInfo(contactFormResult.requestMailAddress, "", null)
 
-						                                     return p.then(() => resolveRecipientInfo(locator.mailModel, recipientInfo)
+						                                     return p.then(() => resolveRecipientInfo(worker, recipientInfo)
 							                                     .then(r => {
 								                                     let recipientInfos = [r]
 								                                     return worker.createMailDraft(this._subject.value(),
